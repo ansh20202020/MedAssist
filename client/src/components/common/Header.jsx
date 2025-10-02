@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Heart, LogOut, User, Shield } from 'lucide-react'
+import { Heart, LogOut, User, UserPlus, LogIn } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
 const Header = () => {
@@ -36,12 +36,18 @@ const Header = () => {
             >
               Dashboard
             </Link>
-            {!isAuthenticated && (
+            <Link 
+              to="/hospitals" 
+              className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              Hospitals
+            </Link>
+            {isAuthenticated && user?.role === 'user' && (
               <Link 
-                to="/admin" 
+                to="/profile" 
                 className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
-                Admin
+                Profile
               </Link>
             )}
           </nav>
@@ -50,8 +56,9 @@ const Header = () => {
             {isAuthenticated ? (
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <Shield className="h-4 w-4" />
+                  <User className="h-4 w-4" />
                   <span>{user?.username}</span>
+                  {user?.role === 'admin' && <span className="text-red-500 font-bold">(Admin)</span>}
                 </div>
                 <button
                   onClick={handleLogout}
@@ -62,13 +69,22 @@ const Header = () => {
                 </button>
               </div>
             ) : (
-              <Link
-                to="/admin"
-                className="flex items-center space-x-1 text-gray-700 hover:text-primary-600 transition-colors"
-              >
-                <User className="h-4 w-4" />
-                <span>Admin Login</span>
-              </Link>
+              <div className="flex items-center space-x-4">
+                <Link
+                  to="/login"
+                  className="flex items-center space-x-1 text-gray-700 hover:text-primary-600 transition-colors"
+                >
+                  <LogIn className="h-4 w-4" />
+                  <span>Login</span>
+                </Link>
+                <Link
+                  to="/register"
+                  className="flex items-center space-x-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span>Register</span>
+                </Link>
+              </div>
             )}
           </div>
         </div>

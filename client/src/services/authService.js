@@ -2,10 +2,10 @@ import api from './api'
 import { ENDPOINTS, ADMIN_CREDENTIALS } from '../utils/constants'
 
 export const authService = {
-  // Admin login
-  adminLogin: async (credentials) => {
+  // User/Admin login
+  login: async (credentials) => {
     try {
-      // For demo purposes, using hardcoded admin credentials
+      // Check for admin credentials first
       if (credentials.username === ADMIN_CREDENTIALS.USERNAME && 
           credentials.password === ADMIN_CREDENTIALS.PASSWORD) {
         
@@ -25,9 +25,29 @@ export const authService = {
           token: mockToken, 
           user: { username: credentials.username, role: 'admin' }
         }
-      } else {
-        throw { message: 'Invalid credentials' }
       }
+      
+      // Regular user login via API
+      const response = await api.post(ENDPOINTS.AUTH.LOGIN, credentials)
+      
+      localStorage.setItem('token', response.data.token)
+      localStorage.setItem('user', JSON.stringify(response.data.user))
+      
+      return response.data
+    } catch (error) {
+      throw error.response?.data || error
+    }
+  },
+
+  // User registration
+  register: async (userData) => {
+    try {
+      const response = await api.post(ENDPOINTS.AUTH.REGISTER, userData)
+      
+      localStorage.setItem('token', response.data.token)
+      localStorage.setItem('user', JSON.stringify(response.data.user))
+      
+      return response.data
     } catch (error) {
       throw error.response?.data || error
     }

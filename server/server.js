@@ -5,6 +5,9 @@ const compression = require('compression')
 const dotenv = require('dotenv')
 const connectDB = require('./config/database')
 const errorHandler = require('./middleware/errorHandler')
+const placesRoutes = require('./routes/places')
+const aiRoutes = require('./routes/ai')
+const locationRoutes = require('./routes/location')
 
 // Routes
 const authRoutes = require('./routes/auth')
@@ -32,6 +35,9 @@ app.use(express.urlencoded({ extended: true }))
 app.use('/api/auth', authRoutes)
 app.use('/api/medicine', medicineRoutes)
 app.use('/api/user', userRoutes)
+app.use('/api/places', placesRoutes)
+app.use('/api/ai', aiRoutes)
+app.use('/api/location', locationRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {

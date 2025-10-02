@@ -1,6 +1,7 @@
 import React from 'react'
 import Header from '../common/Header'
 import Footer from '../common/Footer'
+import AIChatbot from '../common/AIChatbot'
 
 const Layout = ({ children }) => {
   return (
@@ -10,6 +11,7 @@ const Layout = ({ children }) => {
         {children}
       </main>
       <Footer />
+      <AIChatbot />
     </div>
   )
 }
