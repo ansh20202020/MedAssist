@@ -1,81 +1,172 @@
-import React, { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Search, Save, X, Pill } from 'lucide-react'
-import { useMedicine } from '../../hooks/useMedicine'
-import LoadingSpinner from '../common/LoadingSpinner'
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, Search, Save, X, Pill } from 'lucide-react';
+import { useNotification } from '../../context/NotificationContext';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const MedicineManager = () => {
-  const [medicines, setMedicines] = useState([
-    { id: 1, disease: 'cough', medicines: 'Cough Syrup, Honey, Dextromethorphan' },
-    { id: 2, disease: 'cold', medicines: 'Antihistamines, Decongestants, Vitamin C' },
-    { id: 3, disease: 'fever', medicines: 'Paracetamol, Ibuprofen, Aspirin' },
-    { id: 4, disease: 'headache', medicines: 'Aspirin, Acetaminophen, Ibuprofen' },
-    { id: 5, disease: 'hypertension', medicines: 'Amlodipine, Lisinopril, Losartan' },
-  ])
-  
-  const [searchTerm, setSearchTerm] = useState('')
-  const [editingId, setEditingId] = useState(null)
-  const [editForm, setEditForm] = useState({ disease: '', medicines: '' })
-  const [addForm, setAddForm] = useState({ disease: '', medicines: '' })
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [medicines, setMedicines] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({ disease: '', medicines: '' });
+  const [addForm, setAddForm] = useState({ disease: '', medicines: '' });
+  const [showAddForm, setShowAddForm] = useState(false);
+  const { showSuccess, showError } = useNotification();
+
+  // Fetch medicines from backend on component mount
+  useEffect(() => {
+    fetchMedicines();
+  }, []);
+
+  const fetchMedicines = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/medicines/list');
+      const data = await response.json();
+      
+      if (data.success) {
+        setMedicines(data.medicines);
+      }
+    } catch (error) {
+      console.error('Failed to fetch medicines:', error);
+      showError('Failed to load medicines from database');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredMedicines = medicines.filter(medicine =>
     medicine.disease.toLowerCase().includes(searchTerm.toLowerCase()) ||
     medicine.medicines.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  );
 
   const startEdit = (medicine) => {
-    setEditingId(medicine.id)
-    setEditForm({ disease: medicine.disease, medicines: medicine.medicines })
-  }
+    setEditingId(medicine._id);
+    setEditForm({
+      disease: medicine.disease,
+      medicines: medicine.medicines
+    });
+  };
 
   const cancelEdit = () => {
-    setEditingId(null)
-    setEditForm({ disease: '', medicines: '' })
-  }
+    setEditingId(null);
+    setEditForm({ disease: '', medicines: '' });
+  };
 
-  const saveEdit = () => {
-    if (!editForm.disease.trim() || !editForm.medicines.trim()) return
-    
-    setMedicines(medicines.map(medicine =>
-      medicine.id === editingId
-        ? { ...medicine, disease: editForm.disease.toLowerCase(), medicines: editForm.medicines }
-        : medicine
-    ))
-    
-    cancelEdit()
-  }
-
-  const deleteMedicine = (id) => {
-    if (window.confirm('Are you sure you want to delete this medicine entry?')) {
-      setMedicines(medicines.filter(medicine => medicine.id !== id))
+  const saveEdit = async () => {
+    if (!editForm.disease.trim() || !editForm.medicines.trim()) {
+      showError('Please fill in all fields');
+      return;
     }
-  }
 
-  const addMedicine = () => {
-    if (!addForm.disease.trim() || !addForm.medicines.trim()) return
-    
-    const newMedicine = {
-      id: Math.max(...medicines.map(m => m.id), 0) + 1,
-      disease: addForm.disease.toLowerCase(),
-      medicines: addForm.medicines
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/medicines/update/${editingId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(editForm)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        showSuccess('Medicine updated successfully in database!');
+        await fetchMedicines(); // Refresh the list
+        cancelEdit();
+      } else {
+        showError(data.error || 'Failed to update medicine');
+      }
+    } catch (error) {
+      console.error('Update error:', error);
+      showError('Failed to update medicine');
+    } finally {
+      setLoading(false);
     }
-    
-    setMedicines([...medicines, newMedicine])
-    setAddForm({ disease: '', medicines: '' })
-    setShowAddForm(false)
+  };
+
+  const deleteMedicine = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this medicine entry?')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/medicines/delete/${id}`, {
+        method: 'DELETE'
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        showSuccess('Medicine deleted successfully from database!');
+        await fetchMedicines(); // Refresh the list
+      } else {
+        showError(data.error || 'Failed to delete medicine');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      showError('Failed to delete medicine');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addMedicine = async () => {
+    if (!addForm.disease.trim() || !addForm.medicines.trim()) {
+      showError('Please fill in all fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/medicines/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(addForm)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        showSuccess('Medicine added successfully to database!');
+        await fetchMedicines(); // Refresh the list
+        setAddForm({ disease: '', medicines: '' });
+        setShowAddForm(false);
+      } else {
+        showError(data.error || 'Failed to add medicine');
+      }
+    } catch (error) {
+      console.error('Add error:', error);
+      showError('Failed to add medicine');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading && medicines.length === 0) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <LoadingSpinner />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Medicine Management</h2>
-          <p className="text-gray-600">Manage disease-medicine mappings</p>
+          <p className="text-gray-600">Manage disease-medicine mappings in MongoDB</p>
         </div>
-        
         <button
           onClick={() => setShowAddForm(true)}
-          className="btn-primary flex items-center space-x-2"
+          disabled={loading}
+          className="btn-primary flex items-center space-x-2 disabled:opacity-50"
         >
           <Plus className="h-5 w-5" />
           <span>Add Medicine</span>
@@ -101,15 +192,14 @@ const MedicineManager = () => {
             <h3 className="text-lg font-semibold text-gray-900">Add New Medicine Entry</h3>
             <button
               onClick={() => {
-                setShowAddForm(false)
-                setAddForm({ disease: '', medicines: '' })
+                setShowAddForm(false);
+                setAddForm({ disease: '', medicines: '' });
               }}
               className="p-1 text-gray-400 hover:text-gray-600"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -123,7 +213,6 @@ const MedicineManager = () => {
                 className="input-field"
               />
             </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Medicines (comma separated)
@@ -137,23 +226,24 @@ const MedicineManager = () => {
               />
             </div>
           </div>
-          
           <div className="flex justify-end space-x-3 mt-4">
             <button
               onClick={() => {
-                setShowAddForm(false)
-                setAddForm({ disease: '', medicines: '' })
+                setShowAddForm(false);
+                setAddForm({ disease: '', medicines: '' });
               }}
               className="btn-secondary"
+              disabled={loading}
             >
               Cancel
             </button>
             <button
               onClick={addMedicine}
-              disabled={!addForm.disease.trim() || !addForm.medicines.trim()}
-              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!addForm.disease.trim() || !addForm.medicines.trim() || loading}
+              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
-              Add Medicine
+              {loading ? <LoadingSpinner size="sm" /> : <Plus className="h-4 w-4" />}
+              <span>Add Medicine</span>
             </button>
           </div>
         </div>
@@ -167,15 +257,15 @@ const MedicineManager = () => {
             Medicine Database ({filteredMedicines.length} entries)
           </h3>
         </div>
-        
+
         {filteredMedicines.length > 0 ? (
           <div className="space-y-3">
             {filteredMedicines.map((medicine) => (
               <div
-                key={medicine.id}
+                key={medicine._id}
                 className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
               >
-                {editingId === medicine.id ? (
+                {editingId === medicine._id ? (
                   <div className="space-y-3">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -202,11 +292,11 @@ const MedicineManager = () => {
                       </div>
                     </div>
                     <div className="flex justify-end space-x-2">
-                      <button onClick={cancelEdit} className="btn-secondary">
+                      <button onClick={cancelEdit} className="btn-secondary" disabled={loading}>
                         <X className="h-4 w-4" />
                       </button>
-                      <button onClick={saveEdit} className="btn-primary">
-                        <Save className="h-4 w-4" />
+                      <button onClick={saveEdit} className="btn-primary" disabled={loading}>
+                        {loading ? <LoadingSpinner size="sm" /> : <Save className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
@@ -219,19 +309,22 @@ const MedicineManager = () => {
                         </span>
                       </div>
                       <p className="text-gray-700">
-                        <span className="font-medium">Medicines:</span> {medicine.medicines}
+                        <span className="font-medium">Medicines: </span>
+                        {medicine.medicines}
                       </p>
                     </div>
                     <div className="flex items-center space-x-2 ml-4">
                       <button
                         onClick={() => startEdit(medicine)}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        disabled={loading}
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => deleteMedicine(medicine.id)}
+                        onClick={() => deleteMedicine(medicine._id)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        disabled={loading}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -249,7 +342,7 @@ const MedicineManager = () => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default MedicineManager
+export default MedicineManager;

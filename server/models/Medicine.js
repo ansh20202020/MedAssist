@@ -1,4 +1,4 @@
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
 
 const medicineSchema = new mongoose.Schema({
   disease: {
@@ -25,12 +25,10 @@ const medicineSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   }
-}, {
-  timestamps: true
-})
+}, { timestamps: true });
 
 // Create index for faster searches
-medicineSchema.index({ disease: 1 })
-medicineSchema.index({ medicines: 'text' })
+medicineSchema.index({ disease: 1 });
+medicineSchema.index({ medicines: 'text' });
 
-module.exports = mongoose.model('Medicine', medicineSchema)
+module.exports = mongoose.model('Medicine', medicineSchema);
